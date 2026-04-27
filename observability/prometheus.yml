@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: ledgermem-api
+    static_configs:
+      - targets: ["api:4100"]
+    metrics_path: /metrics
+    # /metrics is gated by InternalAuthGuard. Set MEMORY_API_API_KEY to a
+    # value of your choice in .env, then mirror it in the Authorization header
+    # below (use Prom's basic_auth or bearer_token block — Prom doesn't support
+    # custom headers directly, so we use bearer_token).
+    bearer_token_file: /etc/prometheus/api-token
