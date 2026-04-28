@@ -92,7 +92,7 @@ services:
 
   prometheus:
     <<: *defaults
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.55.1
     profiles: ["observability"]
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -102,12 +102,14 @@ services:
 
   grafana:
     <<: *defaults
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.3.1
     profiles: ["observability"]
     depends_on:
       - prometheus
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      # Fail fast if the operator forgot to set this — never silently default
+      # the admin password to "admin" in production.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
     volumes:
       - grafana-data:/var/lib/grafana
     ports:
