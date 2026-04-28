@@ -42,10 +42,17 @@ export type VerifyResult =
   | { ok: true; claims: LicenseClaims }
   | { ok: false; reason: string }
 
+// Allow a small clock-skew window when comparing exp/iat against the local
+// clock. Air-gapped customers and on-prem K8s clusters routinely drift a few
+// minutes from the issuer's clock, and rejecting a license over a 30s skew
+// at the boundary would cause spurious boot failures.
+const CLOCK_SKEW_SECONDS = 60
+
 export function verifyLicense(
   jwt: string,
   publicKeyPem = LEDGERMEM_PUBLIC_KEY_PEM,
   now: number = Math.floor(Date.now() / 1000),
+  clockSkewSeconds: number = CLOCK_SKEW_SECONDS,
 ): VerifyResult {
   const parts = jwt.split('.')
   if (parts.length !== 3) {
@@ -86,7 +93,13 @@ export function verifyLicense(
   if (payload.iat > payload.exp) {
     return { ok: false, reason: 'malformed claims: iat after exp' }
   }
-  if (payload.exp < now) {
+  // Reject tokens issued meaningfully in the future (clock-skew tolerant).
+  // A license with iat > now + skew is either forged or signed by a host
+  // with a badly-set RTC — either way, refuse it.
+  if (payload.iat > now + clockSkewSeconds) {
+    return { ok: false, reason: 'license iat is in the future' }
+  }
+  if (payload.exp + clockSkewSeconds < now) {
     const expired = new Date(payload.exp * 1000).toISOString()
     return { ok: false, reason: `license expired ${expired}` }
   }
