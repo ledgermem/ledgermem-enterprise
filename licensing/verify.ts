@@ -1,9 +1,9 @@
 /**
  * License-key verifier.
  *
- * LedgerMem Enterprise customers receive a signed JWT after Stripe checkout.
+ * Mnemo Enterprise customers receive a signed JWT after Stripe checkout.
  * The API container verifies it on boot using the public key bundled below.
- * This file lives in `ledgermem-enterprise` for transparency: customers can
+ * This file lives in `getmnemo-enterprise` for transparency: customers can
  * audit exactly what's being checked.
  *
  * The actual runtime check happens inside `memory-infrastructure-api`'s
@@ -12,12 +12,12 @@
  * the whole stack.
  *
  * Run with:
- *   npx ts-node verify.ts $LEDGERMEM_LICENSE_KEY
+ *   npx ts-node verify.ts $GETMNEMO_LICENSE_KEY
  */
 
 import { createPublicKey, createVerify } from 'node:crypto'
 
-const LEDGERMEM_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
+const GETMNEMO_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 REPLACE_WITH_REAL_KEY_AT_PUBLISH_TIME
 -----END PUBLIC KEY-----`
 
@@ -50,7 +50,7 @@ const CLOCK_SKEW_SECONDS = 60
 
 export function verifyLicense(
   jwt: string,
-  publicKeyPem = LEDGERMEM_PUBLIC_KEY_PEM,
+  publicKeyPem = GETMNEMO_PUBLIC_KEY_PEM,
   now: number = Math.floor(Date.now() / 1000),
   clockSkewSeconds: number = CLOCK_SKEW_SECONDS,
 ): VerifyResult {
@@ -81,7 +81,7 @@ export function verifyLicense(
   const publicKey = createPublicKey(publicKeyPem)
   const valid = verifier.verify(publicKey, b64urlDecode(sigB64))
   if (!valid) {
-    return { ok: false, reason: 'signature mismatch — license not issued by LedgerMem' }
+    return { ok: false, reason: 'signature mismatch — license not issued by Mnemo' }
   }
 
   if (typeof payload.exp !== 'number') {
@@ -123,9 +123,9 @@ function b64urlDecode(s: string): Buffer {
 // (which import.meta.url percent-encodes) still match argv[1].
 import { pathToFileURL } from 'node:url'
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const key = process.argv[2] ?? process.env.LEDGERMEM_LICENSE_KEY
+  const key = process.argv[2] ?? process.env.GETMNEMO_LICENSE_KEY
   if (!key) {
-    process.stderr.write('Usage: ts-node verify.ts <jwt>  (or set LEDGERMEM_LICENSE_KEY)\n')
+    process.stderr.write('Usage: ts-node verify.ts <jwt>  (or set GETMNEMO_LICENSE_KEY)\n')
     process.exit(2)
   }
   const result = verifyLicense(key)

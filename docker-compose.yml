@@ -1,12 +1,12 @@
-# LedgerMem Enterprise — single-node self-hosted stack.
+# Mnemo Enterprise — single-node self-hosted stack.
 #
 # Bring it up with:
 #   cp .env.example .env
-#   # fill in LEDGERMEM_LICENSE_KEY, OPENAI_API_KEY, JWT secrets, postgres password
+#   # fill in GETMNEMO_LICENSE_KEY, OPENAI_API_KEY, JWT secrets, postgres password
 #   docker compose up -d
 #
-# Hostname: api.ledgermem.your-org.com (terminate TLS at your reverse proxy)
-# Health:   curl https://api.ledgermem.your-org.com/health/ready
+# Hostname: api.getmnemo.your-org.com (terminate TLS at your reverse proxy)
+# Health:   curl https://api.getmnemo.your-org.com/health/ready
 #
 # This compose file targets a small single-node deployment (one customer
 # workspace, < 100k memories). For multi-node + HA see helm/ instead.
@@ -22,7 +22,7 @@ x-defaults: &defaults
 services:
   api:
     <<: *defaults
-    image: ghcr.io/ledgermem/memory-api:${LEDGERMEM_VERSION:-latest}
+    image: ghcr.io/getmnemo/memory-api:${GETMNEMO_VERSION:-latest}
     depends_on:
       postgres:
         condition: service_healthy
@@ -30,11 +30,11 @@ services:
         condition: service_healthy
     env_file: .env
     environment:
-      MEMORY_API_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ledgermem?schema=public
+      MEMORY_API_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/getmnemo?schema=public
       REDIS_URL: redis://redis:6379
       PORT: 4100
       MEMORY_API_TRUST_PROXY: 1
-      LEDGERMEM_LICENSE_KEY: ${LEDGERMEM_LICENSE_KEY}
+      GETMNEMO_LICENSE_KEY: ${GETMNEMO_LICENSE_KEY}
     ports:
       - "127.0.0.1:4100:4100"
     healthcheck:
@@ -46,7 +46,7 @@ services:
 
   worker:
     <<: *defaults
-    image: ghcr.io/ledgermem/memory-api:${LEDGERMEM_VERSION:-latest}
+    image: ghcr.io/getmnemo/memory-api:${GETMNEMO_VERSION:-latest}
     command: ["node", "dist/worker.js"]
     depends_on:
       postgres:
@@ -55,23 +55,23 @@ services:
         condition: service_healthy
     env_file: .env
     environment:
-      MEMORY_API_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/ledgermem?schema=public
+      MEMORY_API_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/getmnemo?schema=public
       REDIS_URL: redis://redis:6379
       MEMORY_API_WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
-      LEDGERMEM_LICENSE_KEY: ${LEDGERMEM_LICENSE_KEY}
+      GETMNEMO_LICENSE_KEY: ${GETMNEMO_LICENSE_KEY}
 
   postgres:
     <<: *defaults
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_DB: ledgermem
+      POSTGRES_DB: getmnemo
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ledgermem"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d getmnemo"]
       interval: 10s
       timeout: 5s
       retries: 5
